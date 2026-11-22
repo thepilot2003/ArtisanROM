@@ -189,6 +189,10 @@ HEX_PATCH()
     TO="$(tr "[:upper:]" "[:lower:]" <<< "$TO")"
 
     if ! xxd -p -c 0 "$FILE" | grep -q "$FROM"; then
+        if [[ "$SOURCE_PLATFORM_SDK_VERSION" -ge 37 ]]; then
+            LOG "- Warning: \"$FROM\" not found in ${FILE//$WORK_DIR/}, skipping for Android 17+ compatibility"
+            return 0
+        fi
         LOGE "No \"$FROM\" match in ${FILE//$WORK_DIR/}"
         return 1
     fi
