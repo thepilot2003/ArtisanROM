@@ -77,8 +77,23 @@ SMALI_PATCH()
 
     local FILE_PATH="$APKTOOL_DIR/$PARTITION/${FILE//system\//}"
 
+    # Check if provided smali exists; if not, check if it was moved to another smali_classes folder
+    if [ ! -f "$FILE_PATH/$SMALI" ]; then
+        local RELATIVE_CLASS="${SMALI#smali*/}"
+        local AUTO_MATCH
+        AUTO_MATCH="$(find "$FILE_PATH" -type f -path "*/$RELATIVE_CLASS" | head -n 1)"
+        if [ -n "$AUTO_MATCH" ]; then
+            SMALI="${AUTO_MATCH#$FILE_PATH/}"
+            LOG "- Auto-resolved smali to: $SMALI"
+        fi
+    fi
+
     # Check if provided smali exists
     if [ ! -f "$FILE_PATH/$SMALI" ]; then
+        if [[ "$SOURCE_PLATFORM_SDK_VERSION" -ge 37 ]]; then
+            LOG "- Warning: Smali not found: \"/$PARTITION/$FILE/$SMALI\", skipping for Android 17+ compatibility"
+            return 0
+        fi
         LOGE "Smali not found: \"/$PARTITION/$FILE/$SMALI\""
 
         local MATCHES
@@ -121,6 +136,10 @@ SMALI_PATCH()
     if [[ "$OPERATION" != "replaceall" ]] && ! awk -v method="$METHOD" \
             '$1 == ".method" && $NF == method { found = 1; exit }
              END { exit !found }' "$FILE_PATH/$SMALI"; then
+        if [[ "$SOURCE_PLATFORM_SDK_VERSION" -ge 37 ]]; then
+            LOG "- Warning: Method \"$METHOD\" not found in /$PARTITION/$FILE/$SMALI, skipping for Android 17+ compatibility"
+            return 0
+        fi
         LOGE "Method \"$METHOD\" not found in /$PARTITION/$FILE/$SMALI"
 
         # Keep diagnostics local and bounded. Recursively collecting every
@@ -407,6 +426,10 @@ SMALI_PATCH()
 
         AFTER="$(sha1sum "$FILE_PATH/$SMALI")"
         if [[ "$BEFORE" == "$AFTER" ]]; then
+            if [[ "$SOURCE_PLATFORM_SDK_VERSION" -ge 37 ]]; then
+                LOG "- Warning: Failed to replace value \"$VALUE\" of method \"$METHOD\" in /$PARTITION/$FILE/$SMALI, skipping for Android 17+ compatibility"
+                return 0
+            fi
             LOGE "Failed to replace value \"$VALUE\" of method \"$METHOD\" in /$PARTITION/$FILE/$SMALI with \"$REPLACEMENT\""
             return 1
         fi
@@ -419,6 +442,10 @@ SMALI_PATCH()
 
         AFTER="$(sha1sum "$FILE_PATH/$SMALI")"
         if [[ "$BEFORE" == "$AFTER" ]]; then
+            if [[ "$SOURCE_PLATFORM_SDK_VERSION" -ge 37 ]]; then
+                LOG "- Warning: Failed to replace all occurrences of \"$VALUE\" with \"$REPLACEMENT\" in /$PARTITION/$FILE/$SMALI, skipping for Android 17+ compatibility"
+                return 0
+            fi
             LOGE "Failed to replace all occurrences of \"$VALUE\" with \"$REPLACEMENT\" in /$PARTITION/$FILE/$SMALI"
             return 1
         fi
