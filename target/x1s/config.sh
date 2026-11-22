@@ -1,7 +1,7 @@
-# Copyright (c) 2025 Salvo Giangreco
+# Copyright (c) 2025-2026 Salvo Giangreco & Android-Artisan
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Device configuration file for Galaxy S20 5G (Exynos) (x1s)
+# Device configuration file for Galaxy S20 (Exynos) (x1s)
 TARGET_NAME="Galaxy S20 (Exynos)"
 TARGET_CODENAME="x1s"
 TARGET_ASSERT_MODEL=("SM-G980F" "SM-G981B")
@@ -10,7 +10,7 @@ TARGET_FIRMWARE="SM-G981B/AUT/351826114719076"
 TARGET_EXTRA_FIRMWARES=()
 TARGET_PLATFORM_SDK_VERSION=30
 
-# Dynamic partitions
+# Dynamic partitions (S20 super partition layout)
 TARGET_SUPER_PARTITION_SIZE=9437184000
 TARGET_GROUP_BASIC_SIZE=9432989696
 

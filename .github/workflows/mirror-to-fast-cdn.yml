@@ -1,0 +1,57 @@
+name: Mirror ROM to Fast CDN / Pixeldrain
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Run ID to mirror (defaults to successful Run #8)"
+        required: true
+        default: "45014995676"
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifact from Build Run
+        uses: actions/download-artifact@v4
+        with:
+          name: ArtisanROM_OneUI9_x1s
+          run-id: ${{ github.event.inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Locate & Verify ROM File
+        id: locate
+        run: |
+          ls -lh
+          ROM_FILE=$(find . -name "*.zip" | head -n 1)
+          echo "rom_file=$ROM_FILE" >> $GITHUB_OUTPUT
+          echo "Target file: $ROM_FILE"
+          ls -lh "$ROM_FILE"
+
+      - name: Upload to Pixeldrain (Blazing Fast Mirror)
+        id: pixeldrain
+        run: |
+          echo "Uploading to Pixeldrain at cloud datacenter gigabit speed..."
+          RESPONSE=$(curl -s -T "${{ steps.locate.outputs.rom_file }}" https://pixeldrain.com/api/file/)
+          echo "Response: $RESPONSE"
+          PD_ID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*' | cut -d'"' -f4)
+          echo "Pixeldrain URL: https://pixeldrain.com/u/$PD_ID"
+          echo "pd_url=https://pixeldrain.com/u/$PD_ID" >> $GITHUB_OUTPUT
+
+      - name: Publish to GitHub Release (Fastly Global CDN)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v5.0.0-x1s
+          name: "ArtisanROM One UI 9 for Galaxy S20 (x1s)"
+          body: |
+            ## ArtisanROM One UI 9 / Aether (v5.0.0) for Samsung Galaxy S20 (x1s)
+            
+            ### High-Speed Direct Download Mirrors:
+            - **Pixeldrain (Fastest / Unthrottled)**: [${{ steps.pixeldrain.outputs.pd_url }}](${{ steps.pixeldrain.outputs.pd_url }})
+            - **GitHub Release (Fastly CDN)**: Attached below as direct asset.
+          files: ${{ steps.locate.outputs.rom_file }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
