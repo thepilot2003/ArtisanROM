@@ -55,6 +55,36 @@ APPLY_PATCH()
         return 0
     fi
 
+    # Try applying normally
+    if LC_ALL=C git apply --directory="$APKTOOL_DIR/$PARTITION/${FILE//system\//}" --unsafe-paths "$PATCH" > /dev/null 2>&1; then
+        LOG "  - Patch applied successfully"
+        return 0
+    fi
+
+    # If patch failed, check if target smali files are located in a different smali_classes folder
+    local TARGET_DIR="$APKTOOL_DIR/$PARTITION/${FILE//system\//}"
+    local TMP_PATCH="${TMP_DIR:-/tmp}/remapped_patch.patch"
+    local APPLIED=false
+
+    for c in smali_classes2 smali_classes3 smali_classes4 smali_classes5 smali_classes6 smali; do
+        sed -E "s/smali_classes[0-9]+/$c/g" "$PATCH" > "$TMP_PATCH"
+        if LC_ALL=C git apply --directory="$TARGET_DIR" --unsafe-paths "$TMP_PATCH" > /dev/null 2>&1; then
+            LOG "  - Patch applied successfully after remapping classes to $c"
+            APPLIED=true
+            break
+        fi
+    done
+    rm -f "$TMP_PATCH"
+
+    if $APPLIED; then
+        return 0
+    fi
+
+    if [[ "$SOURCE_PLATFORM_SDK_VERSION" -ge 37 ]]; then
+        LOG "- Warning: Could not apply patch \"$(grep "^Subject:" "$PATCH" | sed "s/.*PATCH] //")\" to /$PARTITION/$FILE, skipping for Android 17+ compatibility"
+        return 0
+    fi
+
     EVAL "LC_ALL=C git apply --directory=\"$APKTOOL_DIR/$PARTITION/${FILE//system\//}\" --verbose --unsafe-paths \"$PATCH\"" || return 1
 }
 
