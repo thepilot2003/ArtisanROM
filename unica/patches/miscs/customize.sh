@@ -35,12 +35,18 @@ VALUE=${SOURCE_FIRMWARE:0:8}
 
 DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
 
-FTP="
-system/priv-app/SecSettings/SecSettings.apk/smali_classes5/com/samsung/android/settings/deviceinfo/batteryinfo/BatteryRegulatoryPreferenceController.smali
-system/priv-app/SecSettings/SecSettings.apk/smali_classes5/com/samsung/android/settings/deviceinfo/batteryinfo/SecBatteryInfoFragment.smali
+FILES_TO_PATCH="
+BatteryRegulatoryPreferenceController.smali
+SecBatteryInfoFragment.smali
 "
 
-for i in $FTP; do
-    sed -i "s/SM-A236B/$VALUE/g" "$APKTOOL_DIR/$i"
+for fname in $FILES_TO_PATCH; do
+    target_file="$(find "$APKTOOL_DIR/system/priv-app/SecSettings/SecSettings.apk" -type f -name "$fname" 2>/dev/null | head -n 1)"
+    if [ -n "$target_file" ] && [ -f "$target_file" ]; then
+        sed -i "s/SM-A236B/$VALUE/g" "$target_file"
+        LOG "  - Patched $fname in $(basename "$(dirname "$target_file")")"
+    else
+        LOG "  - Warning: $fname not found in SecSettings.apk, skipping"
+    fi
 done
 LOG_STEP_OUT
