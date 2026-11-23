@@ -63,11 +63,11 @@ APPLY_PATCH()
 
     # If patch failed, check if target smali files are located in a different smali_classes folder
     local TARGET_DIR="$APKTOOL_DIR/$PARTITION/${FILE//system\//}"
-    local TMP_PATCH="${TMP_DIR:-/tmp}/remapped_patch.patch"
+    local TMP_PATCH="/tmp/remapped_patch_$$.patch"
     local APPLIED=false
 
     for c in smali_classes2 smali_classes3 smali_classes4 smali_classes5 smali_classes6 smali; do
-        sed -E "s/smali_classes[0-9]+/$c/g" "$PATCH" > "$TMP_PATCH"
+        sed -E "s/smali_classes[0-9]+/$c/g" "$PATCH" > "$TMP_PATCH" 2>/dev/null || continue
         if LC_ALL=C git apply --directory="$TARGET_DIR" --unsafe-paths "$TMP_PATCH" > /dev/null 2>&1; then
             LOG "  - Patch applied successfully after remapping classes to $c"
             APPLIED=true
